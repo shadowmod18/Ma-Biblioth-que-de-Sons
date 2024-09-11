@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ma Bibliothèque de Sons</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f0;
+            background-image: url('https://img2.wallspic.com/previews/3/2/2/9/6/169223/169223-ambiente-violeta-luz-morado-azul-x750.jpg');
+            background-size: cover;
+            background-attachment: fixed;
+            background-position: center;
+            animation: fadeIn 2s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        header {
+            width: 100%;
+            background-color: rgba(0, 123, 255, 0.8);
+            color: #fff;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            animation: slideDown 1s ease-in-out;
+        }
+        @keyframes slideDown {
+            from { transform: translateY(-100%); }
+            to { transform: translateY(0); }
+        }
+        .container {
+            text-align: center;
+            padding: 20px;
+            background-color: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            margin-top: 20px;
+            width: 90%;
+            max-width: 600px;
+            animation: fadeIn 2s ease-in-out;
+        }
+        audio {
+            width: 100%;
+            margin-top: 10px;
+        }
+        a {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 10px 20px;
+            background-color: #007BFF;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+        a:hover {
+            background-color: #0056b3;
+        }
+        .search-bar {
+            margin-bottom: 20px;
+        }
+        .search-bar input {
+            width: 80%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            transition: border-color 0.3s ease;
+        }
+        .search-bar input:focus {
+            border-color: #007BFF;
+        }
+        .sound-item {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            position: relative;
+            background-color: #fff;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        .sound-item:hover {
+            transform: scale(1.02);
+        }
+        .sound-item img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .category {
+            margin-top: 20px;
+        }
+        .category select {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            transition: border-color 0.3s ease;
+        }
+        .category select:focus {
+            border-color: #007BFF;
+        }
+        .add-sound {
+            margin-top: 20px;
+        }
+        .add-sound input, .add-sound button {
+            padding: 10px;
+            margin: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            transition: border-color 0.3s ease;
+        }
+        .add-sound input:focus, .add-sound button:focus {
+            border-color: #007BFF;
+        }
+        .posted-by {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            font-size: 0.8em;
+            color: #555;
+        }
+        .favorite {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 1.5em;
+            color: #ccc;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+        .favorite.active {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Ma Bibliothèque de Sons</h1>
+    </header>
+    <div class="container">
+        <div class="search-bar">
+            <input type="text" id="search" placeholder="Rechercher un son...">
+        </div>
+        <div class="category">
+            <label for="category">Catégorie :</label>
+            <select id="category">
+                <option value="all">Toutes</option>
+                <option value="musique">Musique</option>
+                <option value="nature">Nature</option>
+                <option value="effets">Effets Sonores</option>
+            </select>
+        </div>
+        <div id="sound-list"></div>
+        <div class="add-sound">
+            <h3>Ajouter un Son</h3>
+            <input type="text" id="new-title" placeholder="Titre du Son" required>
+            <input type="file" id="new-audio" accept="audio/*" required>
+            <input type="file" id="new-image" accept="image/*" required>
+            <input type="text" id="new-user" placeholder="Votre Nom" required>
+            <button id="add-button">Ajouter</button>
+        </div>
+        <button id="show-favorites">Voir les Favoris</button>
+        <button id="show-all">Voir Tous les Sons</button>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSounds();
+            loadFavorites();
+        });
+
+        function loadSounds() {
+            const sounds = JSON.parse(localStorage.getItem('sounds')) || [];
+            const soundList = document.getElementById('sound-list');
+            soundList.innerHTML = '';
+            sounds.forEach(sound => {
+                const newItem = document.createElement('div');
+                newItem.classList.add('sound-item');
+                newItem.innerHTML = `
+                    <img src="${sound.imageUrl}" alt="Logo">
+                    <div>
+                        <h2>${sound.title}</h2>
+                        <audio controls>
+                            <source src="${sound.audioUrl}" type="audio/mpeg">
+                            Votre navigateur ne supporte pas la balise audio.
+                        </audio>
+                        <a href="${sound.audioUrl}" download>Télécharger le Son</a>
+                        <div class="posted-by">Posté par ${sound.userName} le ${new Date(sound.date).toLocaleDateString()}</div>
+                        <span class="favorite" data-id="${sound.id}" onclick="toggleFavorite('${sound.id}', this)">♥</span>
+                    </div>
+                `;
+                soundList.appendChild(newItem);
+            });
+            loadFavorites();
+        }
+
+        function loadFavorites() {
+            const favorites = JSON.parse(localStorage.getItem('favorites')) || [];
+            favorites.forEach(favId => {
+                const favElement = document.querySelector(`.favorite[data-id="${favId}"]`);
+                if (favElement) {
+                    favElement.classList.add('active');
+                }
+            });
+        }
+
+        document.getElementById('add-button').addEventListener('click', function() {
+            const title = document.getElementById('new-title').value;
+            const audioFile = document.getElementById('new-audio').files[0];
+            const imageFile = document.getElementById('new-image').files[0];
+            const userName = document.getElementById('new-user').value;
+            const date = new Date().toLocaleDateString();
+
+            if (title && audioFile && imageFile && userName) {
+                const sounds = JSON.parse(localStorage.getItem('sounds')) || [];
+                const newSound = {
+                    id: Date.now().toString(),
+                    title,
+                    audioUrl: URL.createObjectURL(audioFile),
+                    imageUrl: URL.createObjectURL(imageFile),
+                    userName,
+                    date
+                };
+                sounds.push(newSound);
+                localStorage.setItem('sounds', JSON.stringify(sounds));
+                loadSounds();
+            } else {
+                alert('Veuillez remplir tous les champs.');
+            }
+        });
+
+        function toggleFavorite(id, element) {
+            const favorites = JSON.parse(localStorage.getItem('favorites')) || [];
+            const index = favorites.indexOf(id);
+            if (index > -1) {
+                favorites.splice(index, 1);
+                element.classList.remove('active');
+            } else {
+                favorites.push(id);
+                element.classList.add('active');
+            }
+            localStorage.setItem('favorites', JSON.stringify(favorites));
+        }
+
+
+              document.getElementById('search').addEventListener('input', function() {
+            let filter = this.value.toLowerCase();
+            let soundItems = document.querySelectorAll('.sound-item');
+            soundItems.forEach(function(item) {
+                let text = item.querySelector('h2').textContent.toLowerCase();
+                if (text.includes(filter)) {
+                    item.style.display = '';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+
+        document.getElementById('category').addEventListener('change', function() {
+            let category = this.value;
+            let soundItems = document.querySelectorAll('.sound-item');
+            soundItems.forEach(function(item) {
+                if (category === 'all' || item.getAttribute('data-category') === category) {
+                    item.style.display = '';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+
+        document.getElementById('show-favorites').addEventListener('click', function() {
+            const favorites = JSON.parse(localStorage.getItem('favorites')) || [];
+            const sounds = JSON.parse(localStorage.getItem('sounds')) || [];
+            const soundList = document.getElementById('sound-list');
+            soundList.innerHTML = '';
+            sounds.forEach(sound => {
+                if (favorites.includes(sound.id)) {
+                    const newItem = document.createElement('div');
+                    newItem.classList.add('sound-item');
+                    newItem.innerHTML = `
+                        <img src="${sound.imageUrl}" alt="Logo">
+                        <div>
+                            <h2>${sound.title}</h2>
+                            <audio controls>
+                                <source src="${sound.audioUrl}" type="audio/mpeg">
+                                Votre navigateur ne supporte pas la balise audio.
+                            </audio>
+                            <a href="${sound.audioUrl}" download>Télécharger le Son</a>
+                            <div class="posted-by">Posté par ${sound.userName} le ${new Date(sound.date).toLocaleDateString()}</div>
+                            <span class="favorite active" data-id="${sound.id}" onclick="toggleFavorite('${sound.id}', this)">♥</span>
+                        </div>
+                    `;
+                    soundList.appendChild(newItem);
+                }
+            });
+        });
+
+        document.getElementById('show-all').addEventListener('click', function() {
+            loadSounds();
+        });
+
+        function loadFavorites() {
+            const favorites = JSON.parse(localStorage.getItem('favorites')) || [];
+            favorites.forEach(favId => {
+                const favElement = document.querySelector(`.favorite[data-id="${favId}"]`);
+                if (favElement) {
+                    favElement.classList.add('active');
+                }
+            });
+        }
+
+        function loadSounds() {
+            const sounds = JSON.parse(localStorage.getItem('sounds')) || [];
+            const soundList = document.getElementById('sound-list');
+            soundList.innerHTML = '';
+            sounds.forEach(sound => {
+                const newItem = document.createElement('div');
+                newItem.classList.add('sound-item');
+                newItem.innerHTML = `
+                    <img src="${sound.imageUrl}" alt="Logo">
+                    <div>
+                        <h2>${sound.title}</h2>
+                        <audio controls>
+                            <source src="${sound.audioUrl}" type="audio/mpeg">
+                            Votre navigateur ne supporte pas la balise audio.
+                        </audio>
+                        <a href="${sound.audioUrl}" download>Télécharger le Son</a>
+                        <div class="posted-by">Posté par ${sound.userName} le ${new Date(sound.date).toLocaleDateString()}</div>
+                        <span class="favorite" data-id="${sound.id}" onclick="toggleFavorite('${sound.id}', this)">♥</span>
+                    </div>
+                `;
+                soundList.appendChild(newItem);
+            });
+            loadFavorites();
+        }
+    </script>
+</body>
+</html>
+
